@@ -36,6 +36,8 @@ blipit.AddBreadcrumb(&blipit.Breadcrumb{Category: "cache", Message: "warmed 120 
 blipit.CaptureSecurity(blipit.Security{Kind: "login_failed", Actor: "ana@example.com", IP: "203.0.113.9"})
 ```
 
+Login attempts (`CaptureSecurity`) need the project's secret key (init with it on the server) and the Scale plan; with the public key ingest refuses them with 403 `security_needs_secret_key`.
+
 ## Performance
 
 Set `TracesSampleRate: 0.2` in `Options` and requests show up on the Performance page.
