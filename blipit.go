@@ -3,13 +3,23 @@ package blipit
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getsentry/sentry-go"
 )
 
 const DefaultEndpoint = "https://in.blipit.io"
+
+const publicKeyWarning = "[blipit] login attempts need the project's secret key (blipit_sk_...). This SDK was started with the public key, so CaptureSecurity sends nothing. Use the secret key on the server."
+
+var (
+	publicKey       atomic.Bool
+	publicKeyWarned sync.Once
+)
 
 type Options struct {
 	Key              string
@@ -57,6 +67,7 @@ func Init(o Options) error {
 	if o.Project == "" {
 		return errors.New("blipit: Init needs the project id")
 	}
+	publicKey.Store(strings.HasPrefix(o.Key, "blipit_pk_"))
 	return sentry.Init(sentry.ClientOptions{
 		Dsn:              DSN(o.Key, o.Project, o.Endpoint),
 		Environment:      o.Environment,
@@ -88,6 +99,10 @@ func AddBreadcrumb(breadcrumb *Breadcrumb) {
 }
 
 func CaptureSecurity(s Security) {
+	if publicKey.Load() {
+		publicKeyWarned.Do(func() { log.Print(publicKeyWarning) })
+		return
+	}
 	context := map[string]any{"kind": s.Kind, "actor": s.Actor}
 	optional := map[string]string{
 		"outcome":    s.Outcome,
