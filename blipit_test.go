@@ -77,3 +77,14 @@ func TestEventsReachBlipit(t *testing.T) {
 		t.Fatalf("environment = %q", event.Environment)
 	}
 }
+
+func TestInitWithoutKeyReturnsErrorAndStaysOff(t *testing.T) {
+	if err := Init(Options{Key: "  ", Project: "7"}); err != ErrNoKey {
+		t.Fatalf("want ErrNoKey, got %v", err)
+	}
+	if err := Init(Options{Key: "blipit_pk_abc"}); err != ErrNoProject {
+		t.Fatalf("want ErrNoProject, got %v", err)
+	}
+	CaptureMessage("ignored while off")
+	Flush(10 * time.Millisecond)
+}

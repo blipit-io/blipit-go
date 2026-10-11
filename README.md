@@ -23,7 +23,15 @@ err := blipit.Init(blipit.Options{
 })
 ```
 
-Both values are on the project's Keys page at app.blipit.io. Call `blipit.Flush(2 * time.Second)` before the process exits so queued events are delivered.
+Both values are on the project's Keys page at app.blipit.io. `Init` never panics: with an empty key or project id it returns `blipit.ErrNoKey` or `blipit.ErrNoProject` and Blipit stays off, so log the error instead of exiting:
+
+```go
+if err != nil {
+    log.Printf("blipit: %v", err)
+}
+```
+
+Call `blipit.Flush(2 * time.Second)` before the process exits so queued events are delivered.
 
 ## Manual capture
 

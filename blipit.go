@@ -17,6 +17,11 @@ const DefaultEndpoint = "https://in.blipit.io"
 const publicKeyWarning = "[blipit] login attempts need the project's secret key (blipit_sk_...). This SDK was started with the public key, so CaptureSecurity sends nothing. Use the secret key on the server."
 
 var (
+	ErrNoKey     = errors.New("blipit: Init got no key, so Blipit is off and nothing is sent; pass the project's key from app.blipit.io, Keys")
+	ErrNoProject = errors.New("blipit: Init got no project id, so Blipit is off and nothing is sent; pass the id from the project's Keys page at app.blipit.io")
+)
+
+var (
 	publicKey       atomic.Bool
 	publicKeyWarned sync.Once
 )
@@ -61,11 +66,11 @@ func DSN(key, project, endpoint string) string {
 }
 
 func Init(o Options) error {
-	if o.Key == "" {
-		return errors.New("blipit: Init needs the project's public key")
+	if strings.TrimSpace(o.Key) == "" {
+		return ErrNoKey
 	}
-	if o.Project == "" {
-		return errors.New("blipit: Init needs the project id")
+	if strings.TrimSpace(o.Project) == "" {
+		return ErrNoProject
 	}
 	publicKey.Store(strings.HasPrefix(o.Key, "blipit_pk_"))
 	return sentry.Init(sentry.ClientOptions{
