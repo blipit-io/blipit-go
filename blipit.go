@@ -1,9 +1,12 @@
 package blipit
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -13,6 +16,10 @@ import (
 )
 
 const DefaultEndpoint = "https://in.blipit.io"
+
+const Version = "0.2.1"
+
+const updateCommand = "go get github.com/blipit-io/blipit-go@latest"
 
 const publicKeyWarning = "[blipit] login attempts need the project's secret key (blipit_sk_...). This SDK was started with the public key, so CaptureSecurity sends nothing. Use the secret key on the server."
 
@@ -24,6 +31,7 @@ var (
 var (
 	publicKey       atomic.Bool
 	publicKeyWarned sync.Once
+	noticed         atomic.Bool
 )
 
 type Options struct {
@@ -73,14 +81,69 @@ func Init(o Options) error {
 		return ErrNoProject
 	}
 	publicKey.Store(strings.HasPrefix(o.Key, "blipit_pk_"))
-	return sentry.Init(sentry.ClientOptions{
+	options := sentry.ClientOptions{
 		Dsn:              DSN(o.Key, o.Project, o.Endpoint),
 		Environment:      o.Environment,
 		Release:          o.Release,
 		TracesSampleRate: o.TracesSampleRate,
 		SendDefaultPII:   false,
 		Debug:            o.Debug,
-	})
+		BeforeSend:       withIdentity,
+	}
+	if o.Debug || o.Environment == "development" {
+		options.HTTPTransport = noticeTransport{next: http.DefaultTransport}
+	}
+	return sentry.Init(options)
+}
+
+func withIdentity(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
+	for _, p := range event.Sdk.Packages {
+		if p.Name == "go:github.com/blipit-io/blipit-go" {
+			return event
+		}
+	}
+	event.Sdk.Packages = append(event.Sdk.Packages, sentry.SdkPackage{Name: "go:github.com/blipit-io/blipit-go", Version: Version})
+	return event
+}
+
+type noticeTransport struct {
+	next http.RoundTripper
+}
+
+func (t noticeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	res, err := t.next.RoundTrip(r)
+	if err == nil && res != nil && !noticed.Load() {
+		if line := updateNotice(res.Header.Get("X-Blipit-Latest"), Version); line != "" && noticed.CompareAndSwap(false, true) {
+			log.Print(line)
+		}
+	}
+	return res, err
+}
+
+func updateNotice(header, current string) string {
+	if header == "" {
+		return ""
+	}
+	raw, err := url.PathUnescape(header)
+	if err != nil {
+		return ""
+	}
+	var latest struct {
+		Version any `json:"version"`
+		Note    any `json:"note"`
+	}
+	if json.Unmarshal([]byte(raw), &latest) != nil {
+		return ""
+	}
+	version, ok := latest.Version.(string)
+	if !ok || version == "" || version == current {
+		return ""
+	}
+	why := ""
+	if note, ok := latest.Note.(string); ok && strings.TrimSpace(note) != "" {
+		why = " — " + strings.TrimSpace(note)
+	}
+	return fmt.Sprintf("[blipit] %s is available (you have %s)%s — %s", version, current, why, updateCommand)
 }
 
 func CaptureException(err error) {
