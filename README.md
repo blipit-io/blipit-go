@@ -51,3 +51,7 @@ Login attempts (`CaptureSecurity`) need the project's secret key (init with it o
 Set `TracesSampleRate: 0.2` in `Options` and requests show up on the Performance page.
 
 Docs: https://docs.blipit.io/go
+
+## Updates
+
+In development Blipit logs one line when a newer version is out, with the reason and the command. Update with `go get github.com/blipit-io/blipit-go@latest`. Details: https://docs.blipit.io/updates
