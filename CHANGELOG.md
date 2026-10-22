@@ -1,3 +1,7 @@
+## 0.3.1
+
+- Platform mismatch: when Blipit refuses data because the key belongs to a project for another platform (HTTP 409 platform_mismatch), the SDK logs one clear error and stops sending for the rest of the run.
+
 ## 0.3.0
 
 - Rebuilt on Blipit's own core (blipit-nuggets): no third-party SDK or dependency is left, only the Go standard library. Events go to `POST /api/v1/events` in Blipit's event format with the `X-Blipit-Key` header, and identify as `blipit-go` with `blipit.Version`.

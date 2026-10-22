@@ -179,7 +179,37 @@ func (c *client) run() {
 	}
 }
 
+var refusedKeys sync.Map
+
+func (c *client) refused() bool {
+	_, ok := refusedKeys.Load(c.opts.Key)
+	return ok
+}
+
+func (c *client) mismatch(status int, reply []byte) bool {
+	if status != http.StatusConflict {
+		return false
+	}
+	var r struct {
+		Reason string `json:"reason"`
+		Error  string `json:"error"`
+	}
+	if json.Unmarshal(reply, &r) != nil || r.Reason != "platform_mismatch" {
+		return false
+	}
+	if _, seen := refusedKeys.LoadOrStore(c.opts.Key, true); !seen {
+		if r.Error == "" {
+			r.Error = "This key belongs to a project for another platform."
+		}
+		log.Printf("[blipit] %s Blipit stopped sending with this key until the process restarts.", r.Error)
+	}
+	return true
+}
+
 func (c *client) deliver(e *Event) {
+	if c.refused() {
+		return
+	}
 	body, err := json.Marshal(e)
 	if err != nil {
 		c.debugf("[blipit] event not encoded: %v", err)
@@ -197,6 +227,8 @@ func (c *client) deliver(e *Event) {
 		reply, _ := io.ReadAll(io.LimitReader(res.Body, 64<<10))
 		res.Body.Close()
 		switch {
+		case c.mismatch(res.StatusCode, reply):
+			return
 		case res.StatusCode == http.StatusTooManyRequests:
 			c.pause(res, reply)
 		case res.StatusCode >= 500:
