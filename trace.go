@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand/v2"
 	"net"
 	"net/http"
@@ -213,7 +214,7 @@ func (b *spanBuffer) flush() {
 }
 
 func (b *spanBuffer) send(batch []*Span) {
-	if wait := time.Until(time.Unix(0, b.c.pauseUntil.Load())); wait > 0 {
+	if wait := time.Until(time.Unix(0, b.c.pauseUntil.Load())); wait > 0 || b.c.refused() {
 		return
 	}
 	body, err := json.Marshal(b.otlp(batch))
@@ -225,7 +226,11 @@ func (b *spanBuffer) send(batch []*Span) {
 		b.c.debugf("[blipit] spans not sent: %v", err)
 		return
 	}
+	reply, _ := io.ReadAll(io.LimitReader(res.Body, 64<<10))
 	res.Body.Close()
+	if b.c.mismatch(res.StatusCode, reply) {
+		return
+	}
 	if res.StatusCode == http.StatusTooManyRequests {
 		b.c.pause(res, nil)
 	} else if res.StatusCode >= 400 {

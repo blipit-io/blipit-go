@@ -1,6 +1,7 @@
 package blipit
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -298,6 +299,28 @@ func TestRateLimitWaitsForRetryAfter(t *testing.T) {
 	}
 	if string(in.received[0].body) != string(in.received[1].body) {
 		t.Fatal("the retry should resend the same event")
+	}
+}
+
+func TestPlatformMismatchStopsSending(t *testing.T) {
+	var logs bytes.Buffer
+	log.SetOutput(&logs)
+	defer log.SetOutput(os.Stderr)
+	message := "This project is for iOS. Create a separate Backend project in Blipit and use its key."
+	in := newIngest(t, func(n int, w http.ResponseWriter) {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(`{"error":"` + message + `","reason":"platform_mismatch","project_platform":"ios","sent_platform":"backend"}`))
+	})
+	start(t, in, Options{Key: "blipit_sk_mismatch"})
+	CaptureMessage("one")
+	Flush(5 * time.Second)
+	CaptureMessage("two")
+	Flush(5 * time.Second)
+	if n := len(in.events(t)); n != 1 {
+		t.Fatalf("requests after the refusal = %d", n)
+	}
+	if n := strings.Count(logs.String(), message); n != 1 {
+		t.Fatalf("error logged %d times", n)
 	}
 }
 
