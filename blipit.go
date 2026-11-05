@@ -12,7 +12,7 @@ import (
 
 const DefaultEndpoint = "https://in.blipit.io"
 
-const Version = "0.3.1"
+const Version = "0.4.0"
 
 const sdkName = "blipit-go"
 
@@ -36,6 +36,7 @@ type Options struct {
 	Debug            bool
 	ServerName       string
 	BeforeSend       func(*Event) *Event
+	SkipPackages     bool
 }
 
 type Level string
@@ -103,6 +104,9 @@ func Init(o Options) error {
 		o.Environment = "production"
 	}
 	current.Store(newClient(o))
+	if !o.SkipPackages {
+		schedulePackages(o.Endpoint, o.Key)
+	}
 	return nil
 }
 
