@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Package list for the vulnerable library check (Scale plan): `Init` reads the binary's modules (`debug.ReadBuildInfo`, replacements applied) plus the Go standard library as `stdlib`, as Go packages. The list is sent once with `PUT /api/v1/sdk/packages` and the secret key, about ten seconds after start in the background, and again only when it changes (a fingerprint is kept in the temp folder). At most 3000 packages. A public key never sends it. Turn it off with `Options{SkipPackages: true}`.
+
 ## 0.3.1
 
 - Platform mismatch: when Blipit refuses data because the key belongs to a project for another platform (HTTP 409 platform_mismatch), the SDK logs one clear error and stops sending for the rest of the run.

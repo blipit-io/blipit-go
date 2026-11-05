@@ -148,3 +148,7 @@ Docs: https://docs.blipit.io/go
 ## Updates
 
 In development Blipit logs one line when a newer version is out, with the reason and the command. Update with `go get github.com/blipit-io/blipit-go@latest`. Details: https://docs.blipit.io/updates
+
+## Package list
+
+About ten seconds after `blipit.Init`, a goroutine sends the binary's modules (`debug.ReadBuildInfo`) and the Go version as `stdlib` to Blipit, which checks them against known vulnerabilities (Scale plan, Security, Weak spots). It is sent again only when the list changes, needs the secret key, and `Options{SkipPackages: true}` turns it off.
