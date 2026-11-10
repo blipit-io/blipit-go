@@ -251,6 +251,7 @@ func (c *client) post(path string, body []byte) (*http.Response, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Blipit-Key", c.opts.Key)
+	req.Header.Set("X-Blipit-Sdk", sdkName+"/"+Version)
 	req.Header.Set("User-Agent", sdkName+"/"+Version)
 	return c.http.Do(req)
 }

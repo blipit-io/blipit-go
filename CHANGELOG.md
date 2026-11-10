@@ -1,3 +1,7 @@
+## 0.4.1
+
+- Every request to Blipit (events, sessions, logs, traces, package list) sends `X-Blipit-Sdk: blipit-go/<version>`, so the update card in Blipit always shows the version you run.
+
 ## 0.4.0
 
 - Package list for the vulnerable library check (Scale plan): `Init` reads the binary's modules (`debug.ReadBuildInfo`, replacements applied) plus the Go standard library as `stdlib`, as Go packages. The list is sent once with `PUT /api/v1/sdk/packages` and the secret key, about ten seconds after start in the background, and again only when it changes (a fingerprint is kept in the temp folder). At most 3000 packages. A public key never sends it. Turn it off with `Options{SkipPackages: true}`.

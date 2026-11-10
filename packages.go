@@ -78,6 +78,7 @@ func reportPackages(endpoint, key string) int {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Blipit-Key", key)
+	req.Header.Set("X-Blipit-Sdk", sdkName+"/"+Version)
 	res, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
 	if err != nil {
 		return 0

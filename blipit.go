@@ -12,7 +12,7 @@ import (
 
 const DefaultEndpoint = "https://in.blipit.io"
 
-const Version = "0.4.0"
+const Version = "0.4.1"
 
 const sdkName = "blipit-go"
 

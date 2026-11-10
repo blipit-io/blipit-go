@@ -99,8 +99,8 @@ func TestEventsReachBlipit(t *testing.T) {
 	in.mu.Lock()
 	r := in.received[0]
 	in.mu.Unlock()
-	if r.path != "/api/v1/events" || r.key != "blipit_pk_abc" || r.header.Get("Content-Type") != "application/json" {
-		t.Fatalf("request = %s %q %q", r.path, r.key, r.header.Get("Content-Type"))
+	if r.path != "/api/v1/events" || r.key != "blipit_pk_abc" || r.header.Get("Content-Type") != "application/json" || r.header.Get("X-Blipit-Sdk") != "blipit-go/"+Version {
+		t.Fatalf("request = %s %q %q %q", r.path, r.key, r.header.Get("Content-Type"), r.header.Get("X-Blipit-Sdk"))
 	}
 	var e Event
 	if err := json.Unmarshal(r.body, &e); err != nil {
